@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video OCR and Redaction</title>
+</head>
+<body>
+    <h1>Upload Video for OCR and Redaction</h1>
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" id="video" name="video" accept="video/*">
+        <button type="submit">Upload</button>
+    </form>
+    <h2>Redacted Video Preview</h2>
+    <video id="video-preview" width="800" controls></video>
+    <script>
+        const form = document.getElementById('upload-form');
+        const videoPreview = document.getElementById('video-preview');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(form);
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            videoPreview.src = result.redactedVideoUrl;
+        });
+    </script>
+</body>
+</html>
