@@ -34,22 +34,47 @@ async function extractFrames(videoPath, outputDir) {
         fs.mkdirSync(outputDir);
     }
 
-    const data = fs.readFileSync(videoPath);
-    const result = ffmpeg({
-        MEMFS: [{ name: 'input.mp4', data: new Uint8Array(data) }],
-        arguments: ['-i', 'input.mp4', '-vf', 'fps=1', path.join(outputDir, 'frame_%03d.jpg')],
-    });
-
-    if (result.stderr) {
-        console.error(result.stderr);
+    // Ensure the output directory exists
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir);
     }
 
-    result.MEMFS.forEach((file) => {
-        if (file.name.endsWith('.jpg')) {
-            fs.writeFileSync(path.join(outputDir, file.name), Buffer.from(file.data));
+    // Correctly format the FFmpeg command
+    const command = [
+        'ffmpeg',
+        '-i', videoPath,
+        `-vf`, 'fps=1',
+        `${outputDir}/frame_%03d.jpg`
+    ].join(' ');
+
+    // Execute the FFmpeg command
+    const result = exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error executing FFmpeg: ${error.message}`);
+            return;
         }
+        if (stderr) {
+            console.error(`FFmpeg stderr: ${stderr}`);
+            return;
+        }
+        console.log(`FFmpeg stdout: ${stdout}`);
     });
+
+    // Wait for the FFmpeg process to finish
+    await new Promise(resolve => result.on('close', resolve));
+
+    // Read and save the generated frames
+    const frameFiles = fs.readdirSync(outputDir).filter(file => file.endsWith('.jpg'));
+    if (frameFiles.length === 0) {
+        throw new Error('No frames found for reassembly.');
+    }
+
+    const MEMFS = frameFiles.map(file => ({
+        name: file,
+        data: new Uint8Array(fs.readFileSync(path.join(outputDir, file))),
+    }));
 }
+
 
 async function anonymizeFramesWithPython(framesDir, redactedFramesDir) {
     return new Promise((resolve, reject) => {

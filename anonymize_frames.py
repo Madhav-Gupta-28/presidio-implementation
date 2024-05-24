@@ -14,6 +14,8 @@ def redact_image(image_path, output_path):
 
     # Save the redacted image
     redacted_image.save(output_path)
+    
+    print(f"Redacted image saved at {redact_image}")
 
 def main(frames_dir, redacted_frames_dir):
     if not os.path.exists(redacted_frames_dir):
